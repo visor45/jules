@@ -1,23 +1,25 @@
 
-// --- Array additionnal functions ---
-Array.prototype.remove = function(elem) {
-    var index = this.indexOf(elem);
-    this.splice(index, 1);
-};
-
-Array.prototype.clone = function() {
-    return this.slice(0);
-};
-
-Array.prototype.shuffle = function() {
-    var j, x, i;
-    for (i = this.length; i; i -= 1) {
-        j = Math.floor(Math.random() * i);
-        x = this[i - 1];
-        this[i - 1] = this[j];
-        this[j] = x;
+// --- Utility functions ---
+var removeFromArray = function(arr, elem) {
+    var index = arr.indexOf(elem);
+    if (index > -1) {
+        arr.splice(index, 1);
     }
-    return this;
+};
+
+var cloneArray = function(arr) {
+    return arr.slice(0);
+};
+
+var shuffleArray = function(arr) {
+    var j, x, i;
+    for (i = arr.length; i; i -= 1) {
+        j = Math.floor(Math.random() * i);
+        x = arr[i - 1];
+        arr[i - 1] = arr[j];
+        arr[j] = x;
+    }
+    return arr;
 }
 
 // ---- Main app class ------------
@@ -44,15 +46,22 @@ var StarWarsRebellionSolo = function(){
     var initial_hand = [];
     var rebel_base = "";
     var basic_game = false;
+    var log_messages_count = 0;
     
     var systems_white = [];
     var systems_green = [];
     var systems_red = [];
     
+    var logMessage = function(message) {
+        log_messages_count++;
+        var log_html = '<div class="log-message">#' + log_messages_count + ': ' + message + '</div>';
+        jQuery('#log_messages').prepend(log_html);
+    };
+
     var InitCards = function(){
-        probe_deck = systems.clone();
-        probe_deck.remove('coruscant');
-        probe_deck.shuffle();
+        probe_deck = cloneArray(systems);
+        removeFromArray(probe_deck, 'coruscant');
+        shuffleArray(probe_deck);
     };
     
     var InitBasic = function(){
@@ -62,19 +71,21 @@ var StarWarsRebellionSolo = function(){
         DrawCard('sullust');
         DrawCard('mustafar');
         basic_game = true;
-        initial_hand = probe_hand.clone();
+        initial_hand = cloneArray(probe_hand);
+        logMessage("Basic game started.");
     };
     
     var InitAdvanced = function(){
         
-        imp_systems.shuffle();
+        shuffleArray(imp_systems);
         imp_systems = imp_systems.slice(0, 5);
         for(var i=0; i<imp_systems.length; i++){
             DrawCard(imp_systems[i]);
         }
         
         basic_game = false;
-        initial_hand = probe_hand.clone();
+        initial_hand = cloneArray(probe_hand);
+        logMessage("Advanced game started.");
     };
     
     var DrawCard = function(name){
@@ -84,16 +95,20 @@ var StarWarsRebellionSolo = function(){
             var card = "";
             if(name){
                 card = name
-                probe_deck.remove(card);
+                removeFromArray(probe_deck, card);
             }else{
                 card = probe_deck.shift();
             }
             
             probe_hand.push(card);
             probe_hand.sort();
-            jQuery('#text_zone').html('New card: ' + card);
+            var message = 'Imperial player drew: ' + card;
+            jQuery('#text_zone').html(message);
+            logMessage(message);
         }else{
-            jQuery('#text_zone').html('No card left in the deck!');
+            var message = 'No card left in the deck!';
+            jQuery('#text_zone').html(message);
+            logMessage(message);
         }
     };
     
@@ -111,11 +126,14 @@ var StarWarsRebellionSolo = function(){
         jQuery('#guess_select').val("");
         
         if(selected){
+            var message = "";
             if(selected == rebel_base){
-                jQuery('#text_zone').html("Well played! " + selected + " is the rebel base! The force is strong with you.");
+                message = "Well played! " + selected + " is the rebel base! The force is strong with you.";
             }else{
-                jQuery('#text_zone').html(selected + " is not the rebel base!");
+                message = selected + " is not the rebel base!";
             }
+            jQuery('#text_zone').html(message);
+            logMessage("Imperial player guessed " + selected + ". Result: " + message);
         }
     };
     
@@ -193,9 +211,13 @@ var StarWarsRebellionSolo = function(){
         
         // Text 
         if(rebel_base !== old_base){
-            jQuery('#text_zone').html("A new base has been established for the rebel player!" + ( old_base ? " Previous base: " + old_base : ""));
+            var message = "A new base has been established for the rebel player!" + ( old_base ? " Previous base: " + old_base : "");
+            jQuery('#text_zone').html(message);
+            logMessage("Rebel player relocated the base.");
         }else{
-            jQuery('#text_zone').html("The rebel player failed at establishing a new base.");
+            var message = "The rebel player failed at establishing a new base.";
+            jQuery('#text_zone').html(message);
+            logMessage(message);
         }
         
         RefreshCardList();
@@ -299,7 +321,7 @@ var StarWarsRebellionSolo = function(){
         jQuery('#start_zone').hide();
         
         //Init guess select
-        var guess_systems = systems.clone();
+        var guess_systems = cloneArray(systems);
         guess_systems.sort();
         jQuery('#guess_select').append(jQuery('<option>', { value: '', text : '' }));
         jQuery.each(guess_systems, function (i, system) {
@@ -367,10 +389,12 @@ var StarWarsRebellionSolo = function(){
         
         //Get 3 first and shuffle
         planets = planets.slice(0, 3);
-        planets.shuffle();
+        shuffleArray(planets);
         
         var planets_str = planets.toString().replace(/\,/g, ', ');
-        jQuery('#text_zone').html("Interrogation Droid: " + planets_str);
+        var message = "Interrogation Droid: " + planets_str;
+        jQuery('#text_zone').html(message);
+        logMessage(message);
     }
     
     function InterceptTransmission(){
@@ -400,15 +424,17 @@ var StarWarsRebellionSolo = function(){
         }
         
         probe_hand.sort();
-        probe_deck.shuffle();
+        shuffleArray(probe_deck);
         RefreshCardList();
         ShowCards();
         
         var planets_str = new_cards.toString().replace(/\,/g, ', ');
-        jQuery('#text_zone').html("Intercept Transmission: new cards (" + new_cards.length + "/" + hand.length +"): " + planets_str);
+        var message = "Intercept Transmission: new cards (" + new_cards.length + "/" + hand.length +"): " + planets_str;
         if(new_cards.length == 0){
-            jQuery('#text_zone').html("Intercept Transmission: No imperial card drawn! Sorry!");
+            message = "Intercept Transmission: No imperial card drawn! Sorry!";
         }
+        jQuery('#text_zone').html(message);
+        logMessage(message);
     }
     
     function HomingBeacon(){
@@ -416,7 +442,9 @@ var StarWarsRebellionSolo = function(){
             var tempList = systems.slice(i, i+4);
             if(tempList.indexOf(rebel_base) >= 0){
                 var planets_str = tempList.toString().replace(/\,/g, ', ');
-                jQuery('#text_zone').html("Homing Beacon: selected region: " + planets_str);
+                var message = "Homing Beacon: selected region: " + planets_str;
+                jQuery('#text_zone').html(message);
+                logMessage(message);
             }
         }
     }
@@ -504,7 +532,7 @@ var StarWarsRebellionSolo = function(){
     jQuery('#map_btn_all').click(function(){ 
         RelocateBase();
         ShowCards();
-        probe_deck.shuffle();
+        shuffleArray(probe_deck);
     });
     
     jQuery('#map_btn_4').click(function(){ 
