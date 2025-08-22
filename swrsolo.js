@@ -1,23 +1,25 @@
 
-// --- Array additionnal functions ---
-Array.prototype.remove = function(elem) {
-    var index = this.indexOf(elem);
-    this.splice(index, 1);
-};
-
-Array.prototype.clone = function() {
-    return this.slice(0);
-};
-
-Array.prototype.shuffle = function() {
-    var j, x, i;
-    for (i = this.length; i; i -= 1) {
-        j = Math.floor(Math.random() * i);
-        x = this[i - 1];
-        this[i - 1] = this[j];
-        this[j] = x;
+// --- Utility functions ---
+var removeFromArray = function(arr, elem) {
+    var index = arr.indexOf(elem);
+    if (index > -1) {
+        arr.splice(index, 1);
     }
-    return this;
+};
+
+var cloneArray = function(arr) {
+    return arr.slice(0);
+};
+
+var shuffleArray = function(arr) {
+    var j, x, i;
+    for (i = arr.length; i; i -= 1) {
+        j = Math.floor(Math.random() * i);
+        x = arr[i - 1];
+        arr[i - 1] = arr[j];
+        arr[j] = x;
+    }
+    return arr;
 }
 
 // ---- Main app class ------------
@@ -44,15 +46,25 @@ var StarWarsRebellionSolo = function(){
     var initial_hand = [];
     var rebel_base = "";
     var basic_game = false;
+    var log_messages_count = 0;
     
     var systems_white = [];
     var systems_green = [];
     var systems_red = [];
     
+    var logMessage = function(message) {
+        log_messages_count++;
+        var log_html = '<div class="log-message">#' + log_messages_count + ': ' + message + '</div>';
+        var log_container = document.querySelector('#log_messages');
+        if (log_container) {
+            log_container.insertAdjacentHTML('afterbegin', log_html);
+        }
+    };
+
     var InitCards = function(){
-        probe_deck = systems.clone();
-        probe_deck.remove('coruscant');
-        probe_deck.shuffle();
+        probe_deck = cloneArray(systems);
+        removeFromArray(probe_deck, 'coruscant');
+        shuffleArray(probe_deck);
     };
     
     var InitBasic = function(){
@@ -62,38 +74,45 @@ var StarWarsRebellionSolo = function(){
         DrawCard('sullust');
         DrawCard('mustafar');
         basic_game = true;
-        initial_hand = probe_hand.clone();
+        initial_hand = cloneArray(probe_hand);
+        logMessage("Basic game started.");
     };
     
     var InitAdvanced = function(){
         
-        imp_systems.shuffle();
+        shuffleArray(imp_systems);
         imp_systems = imp_systems.slice(0, 5);
         for(var i=0; i<imp_systems.length; i++){
             DrawCard(imp_systems[i]);
         }
         
         basic_game = false;
-        initial_hand = probe_hand.clone();
+        initial_hand = cloneArray(probe_hand);
+        logMessage("Advanced game started.");
     };
     
     var DrawCard = function(name){
         
+        var text_zone = document.querySelector('#text_zone');
         if(probe_deck.length > 0){
             
             var card = "";
             if(name){
                 card = name
-                probe_deck.remove(card);
+                removeFromArray(probe_deck, card);
             }else{
                 card = probe_deck.shift();
             }
             
             probe_hand.push(card);
             probe_hand.sort();
-            jQuery('#text_zone').html('New card: ' + card);
+            var message = 'Imperial player drew: ' + card;
+            if(text_zone) text_zone.innerHTML = message;
+            logMessage(message);
         }else{
-            jQuery('#text_zone').html('No card left in the deck!');
+            var message = 'No card left in the deck!';
+            if(text_zone) text_zone.innerHTML = message;
+            logMessage(message);
         }
     };
     
@@ -102,20 +121,28 @@ var StarWarsRebellionSolo = function(){
         for(var i=0; i<probe_hand.length; i++){
             html += '<div class="card-line">' + probe_hand[i] + '</div>';
         }
-        jQuery('#display_area').html(html);
-        jQuery('#hand_count').html(probe_hand.length + "/" + (probe_hand.length + probe_deck.length));
+        var display_area = document.querySelector('#display_area');
+        if(display_area) display_area.innerHTML = html;
+
+        var hand_count = document.querySelector('#hand_count');
+        if(hand_count) hand_count.innerHTML = probe_hand.length + "/" + (probe_hand.length + probe_deck.length);
     };
 
     var GuessBase = function(){
-        var selected = jQuery('#guess_select').val();
-        jQuery('#guess_select').val("");
+        var guess_select = document.querySelector('#guess_select');
+        var selected = guess_select ? guess_select.value : "";
+        if(guess_select) guess_select.value = "";
         
         if(selected){
+            var message = "";
             if(selected == rebel_base){
-                jQuery('#text_zone').html("Well played! " + selected + " is the rebel base! The force is strong with you.");
+                message = "Well played! " + selected + " is the rebel base! The force is strong with you.";
             }else{
-                jQuery('#text_zone').html(selected + " is not the rebel base!");
+                message = selected + " is not the rebel base!";
             }
+            var text_zone = document.querySelector('#text_zone');
+            if(text_zone) text_zone.innerHTML = message;
+            logMessage("Imperial player guessed " + selected + ". Result: " + message);
         }
     };
     
@@ -125,14 +152,15 @@ var StarWarsRebellionSolo = function(){
         systems_green = [];
         systems_red = [];
         
-        jQuery.each(jQuery('.map-selector'), function(i, system){
-            if(jQuery(system).hasClass('red')){
+        var map_selectors = document.querySelectorAll('.map-selector');
+        map_selectors.forEach(function(system){
+            if(system.classList.contains('red')){
                 systems_red.push(system.id);
             }
-            if(jQuery(system).hasClass('white')){
+            if(system.classList.contains('white')){
                 systems_white.push(system.id);
             }
-            if(jQuery(system).hasClass('green')){
+            if(system.classList.contains('green')){
                 systems_green.push(system.id);
             }
         });
@@ -192,11 +220,16 @@ var StarWarsRebellionSolo = function(){
         }
         
         // Text 
+        var message = "";
         if(rebel_base !== old_base){
-            jQuery('#text_zone').html("A new base has been established for the rebel player!" + ( old_base ? " Previous base: " + old_base : ""));
+            message = "A new base has been established for the rebel player!" + ( old_base ? " Previous base: " + old_base : "");
+            logMessage("Rebel player relocated the base.");
         }else{
-            jQuery('#text_zone').html("The rebel player failed at establishing a new base.");
+            message = "The rebel player failed at establishing a new base.";
+            logMessage(message);
         }
+        var text_zone = document.querySelector('#text_zone');
+        if(text_zone) text_zone.innerHTML = message;
         
         RefreshCardList();
     };
@@ -251,44 +284,61 @@ var StarWarsRebellionSolo = function(){
                 + ' style="top:' + sys.top + ';left:' + sys.left + ';width:' + sys.size + ';height:' + sys.size + ';"></span>';
         }
         
-        jQuery('#map_controls').html(html);
+        var map_controls = document.querySelector('#map_controls');
+        if (map_controls) map_controls.innerHTML = html;
         
         //Initial red
         for(var i=0; i<initial_hand.length; i++){
-            jQuery('#' + initial_hand[i]).removeClass('white').addClass('red');
+            var system_el = document.querySelector('#' + initial_hand[i]);
+            if (system_el) {
+                system_el.classList.remove('white');
+                system_el.classList.add('red');
+            }
         }
         
-        jQuery('.map-selector').click(function(){
-            var self = jQuery(this);
-            if(self.hasClass('white')){
-                self.removeClass('white');
-                self.addClass('green');
-            }
-            else if(self.hasClass('green')){
-                self.removeClass('green');
-                self.addClass('red');
-            }
-            else if(self.hasClass('red')){
-                self.removeClass('red');
-                self.addClass('white');
-            }
+        var map_selectors = document.querySelectorAll('.map-selector');
+        map_selectors.forEach(function(selector) {
+            selector.addEventListener('click', function(event) {
+                var self = event.currentTarget;
+                if(self.classList.contains('white')){
+                    self.classList.remove('white');
+                    self.classList.add('green');
+                }
+                else if(self.classList.contains('green')){
+                    self.classList.remove('green');
+                    self.classList.add('red');
+                }
+                else if(self.classList.contains('red')){
+                    self.classList.remove('red');
+                    self.classList.add('white');
+                }
+            });
         });
     };
     
     var ShowCards = function(){
-        jQuery('#card_zone').show();
-        jQuery('#map_zone').hide();
-        jQuery('#action_zone').show();
-        jQuery('#map_buttons').hide();
-        jQuery('#text_zone_top').hide();
+        var card_zone = document.querySelector('#card_zone');
+        if(card_zone) card_zone.style.display = 'block';
+        var map_zone = document.querySelector('#map_zone');
+        if(map_zone) map_zone.style.display = 'none';
+        var action_zone = document.querySelector('#action_zone');
+        if(action_zone) action_zone.style.display = 'block';
+        var map_buttons = document.querySelector('#map_buttons');
+        if(map_buttons) map_buttons.style.display = 'none';
+        var text_zone_top = document.querySelector('#text_zone_top');
+        if(text_zone_top) text_zone_top.style.display = 'none';
+
         if(!rebel_base){
-            jQuery('#text_zone').html("WARNING! There is currently no rebel base. Please click on relocate base to select a new base for the rebels.");
+            var text_zone = document.querySelector('#text_zone');
+            if(text_zone) text_zone.innerHTML = "WARNING! There is currently no rebel base. Please click on relocate base to select a new base for the rebels.";
         }
     };
     
     var ShowMap = function(){
-        jQuery('#card_zone').hide();
-        jQuery('#map_zone').show();
+        var card_zone = document.querySelector('#card_zone');
+        if(card_zone) card_zone.style.display = 'none';
+        var map_zone = document.querySelector('#map_zone');
+        if(map_zone) map_zone.style.display = 'block';
     };
 
     var StartGame = function(){
@@ -296,24 +346,37 @@ var StarWarsRebellionSolo = function(){
         RefreshRelocateBase(true);
         RefreshCardList();
         
-        jQuery('#start_zone').hide();
+        var start_zone = document.querySelector('#start_zone');
+        if (start_zone) start_zone.style.display = 'none';
         
         //Init guess select
-        var guess_systems = systems.clone();
+        var guess_systems = cloneArray(systems);
         guess_systems.sort();
-        jQuery('#guess_select').append(jQuery('<option>', { value: '', text : '' }));
-        jQuery.each(guess_systems, function (i, system) {
-            jQuery('#guess_select').append(jQuery('<option>', { 
-                value: system,
-                text : system 
-            }));
-        });
+        var guess_select = document.querySelector('#guess_select');
+        if (guess_select) {
+            var empty_option = document.createElement('option');
+            empty_option.value = '';
+            empty_option.text = '';
+            guess_select.appendChild(empty_option);
+
+            guess_systems.forEach(function (system) {
+                var option = document.createElement('option');
+                option.value = system;
+                option.text = system;
+                guess_select.appendChild(option);
+            });
+        }
         
         //Text
-        jQuery('#action_zone').hide();
-        jQuery('#map_buttons').show();
-        jQuery('#text_zone_top').show();
-        jQuery('#text_zone_top').html("Waiting for rebel base selection...");
+        var action_zone = document.querySelector('#action_zone');
+        if (action_zone) action_zone.style.display = 'none';
+        var map_buttons = document.querySelector('#map_buttons');
+        if (map_buttons) map_buttons.style.display = 'block';
+        var text_zone_top = document.querySelector('#text_zone_top');
+        if (text_zone_top) {
+            text_zone_top.style.display = 'block';
+            text_zone_top.innerHTML = "Waiting for rebel base selection...";
+        }
         
         //Text
         var html = "<div>Imperial player starting cards: </div><ul>";
@@ -321,7 +384,8 @@ var StarWarsRebellionSolo = function(){
             html += "<li>" + initial_hand[i] + "</li>";
         }
         html += "</ul>";
-        jQuery('#text_zone').html(html);
+        var text_zone = document.querySelector('#text_zone');
+        if(text_zone) text_zone.innerHTML = html;
     };
     
     // ---- Special cards --------
@@ -367,10 +431,13 @@ var StarWarsRebellionSolo = function(){
         
         //Get 3 first and shuffle
         planets = planets.slice(0, 3);
-        planets.shuffle();
+        shuffleArray(planets);
         
         var planets_str = planets.toString().replace(/\,/g, ', ');
-        jQuery('#text_zone').html("Interrogation Droid: " + planets_str);
+        var message = "Interrogation Droid: " + planets_str;
+        var text_zone = document.querySelector('#text_zone');
+        if(text_zone) text_zone.innerHTML = message;
+        logMessage(message);
     }
     
     function InterceptTransmission(){
@@ -400,15 +467,18 @@ var StarWarsRebellionSolo = function(){
         }
         
         probe_hand.sort();
-        probe_deck.shuffle();
+        shuffleArray(probe_deck);
         RefreshCardList();
         ShowCards();
         
         var planets_str = new_cards.toString().replace(/\,/g, ', ');
-        jQuery('#text_zone').html("Intercept Transmission: new cards (" + new_cards.length + "/" + hand.length +"): " + planets_str);
+        var message = "Intercept Transmission: new cards (" + new_cards.length + "/" + hand.length +"): " + planets_str;
         if(new_cards.length == 0){
-            jQuery('#text_zone').html("Intercept Transmission: No imperial card drawn! Sorry!");
+            message = "Intercept Transmission: No imperial card drawn! Sorry!";
         }
+        var text_zone = document.querySelector('#text_zone');
+        if(text_zone) text_zone.innerHTML = message;
+        logMessage(message);
     }
     
     function HomingBeacon(){
@@ -416,108 +486,123 @@ var StarWarsRebellionSolo = function(){
             var tempList = systems.slice(i, i+4);
             if(tempList.indexOf(rebel_base) >= 0){
                 var planets_str = tempList.toString().replace(/\,/g, ', ');
-                jQuery('#text_zone').html("Homing Beacon: selected region: " + planets_str);
+                var message = "Homing Beacon: selected region: " + planets_str;
+                var text_zone = document.querySelector('#text_zone');
+                if(text_zone) text_zone.innerHTML = message;
+                logMessage(message);
             }
         }
     }
 
-    // ------ Left menu UI -----
-    jQuery('#start_btn').click(function(){
+    // ------ UI Event Listeners -----
+    document.querySelector('#start_btn').addEventListener('click', function(){
         InitCards();
         InitBasic();
-        StartGame(); 
+        StartGame();
         ShowMap();
     });
-    
-    jQuery('#start_advanced_btn').click(function(){
+
+    document.querySelector('#start_advanced_btn').addEventListener('click', function(){
         InitCards();
         InitAdvanced();
-        StartGame(); 
+        StartGame();
         ShowMap();
     });
-    
-    jQuery('#new_game').click(function(){
+
+    document.querySelector('#new_game').addEventListener('click', function(){
         var confirmed = confirm("Start a new game?");
         if(confirmed){
             window.location.reload();
         }
     });
-    
-    jQuery('#draw_btn').click(function(){
+
+    document.querySelector('#draw_btn').addEventListener('click', function(){
         DrawCard();
         RefreshCardList();
         
-        jQuery('#draw_btn').hide();
+        var draw_btn = document.querySelector('#draw_btn');
+        if(draw_btn) draw_btn.style.display = 'none';
         setTimeout(function(){
-            jQuery('#draw_btn').show();
+            if(draw_btn) draw_btn.style.display = 'block';
         }, 1000);
     });
-    
-    jQuery('#guess_btn').click(function(){
+
+    document.querySelector('#guess_btn').addEventListener('click', function(){
         GuessBase();
     });
-    
-    jQuery('#relocate_btn').click(function(){
+
+    document.querySelector('#relocate_btn').addEventListener('click', function(){
         ShowMap();
-        jQuery('#action_zone').hide();
-        jQuery('#map_buttons').show();
-        jQuery('#text_zone_top').show();
-        jQuery('#text_zone_top').html("Waiting for rebel base selection...");
-        jQuery('#text_zone').html("");
+        var action_zone = document.querySelector('#action_zone');
+        if(action_zone) action_zone.style.display = 'none';
+        var map_buttons = document.querySelector('#map_buttons');
+        if(map_buttons) map_buttons.style.display = 'block';
+        var text_zone_top = document.querySelector('#text_zone_top');
+        if(text_zone_top) {
+            text_zone_top.style.display = 'block';
+            text_zone_top.innerHTML = "Waiting for rebel base selection...";
+        }
+        var text_zone = document.querySelector('#text_zone');
+        if(text_zone) text_zone.innerHTML = "";
     });
-    
-    jQuery('.tab').click(function(){
-        jQuery('.action-option').hide();
-        jQuery('.tab').removeClass('selected');
-        jQuery(this).addClass('selected');
-        jQuery('#action_' + this.id).show();
+
+    document.querySelectorAll('.tab').forEach(function(tab) {
+        tab.addEventListener('click', function(event) {
+            document.querySelectorAll('.action-option').forEach(function(el){ el.style.display = 'none'; });
+            document.querySelectorAll('.tab').forEach(function(el){ el.classList.remove('selected'); });
+
+            var self = event.currentTarget;
+            self.classList.add('selected');
+            var action_tab = document.querySelector('#action_' + self.id);
+            if(action_tab) action_tab.style.display = 'block';
+        });
     });
-    
-    jQuery('#view_cards').click(function(){
+
+    document.querySelector('#view_cards').addEventListener('click', function(){
        ShowCards(); 
     });
     
-    jQuery('#view_map').click(function(){
+    document.querySelector('#view_map').addEventListener('click', function(){
        ShowMap(); 
     });
     
-    jQuery('#the_map_link').click(function(){
+    document.querySelector('#the_map_link').addEventListener('click', function(){
        ShowMap(); 
     });
     
     //Special cards
-    jQuery('#interrogation_btn').click(function(){
+    document.querySelector('#interrogation_btn').addEventListener('click', function(){
         InterrogationDroid();
     });
     
-    jQuery('#intercept_btn').click(function(){
+    document.querySelector('#intercept_btn').addEventListener('click', function(){
         InterceptTransmission(); 
     });
     
-    jQuery('#homing_btn').click(function(){
+    document.querySelector('#homing_btn').addEventListener('click', function(){
         HomingBeacon(); 
     });
     
     
     // --------- Right section UI ---------
     
-    jQuery('#map_btn_all').click(function(){ 
+    document.querySelector('#map_btn_all').addEventListener('click', function(){
         RelocateBase();
         ShowCards();
-        probe_deck.shuffle();
+        shuffleArray(probe_deck);
     });
     
-    jQuery('#map_btn_4').click(function(){ 
+    document.querySelector('#map_btn_4').addEventListener('click', function(){
         RelocateBase(4);
         ShowCards();
     });
     
-    jQuery('#map_btn_8').click(function(){ 
+    document.querySelector('#map_btn_8').addEventListener('click', function(){
         RelocateBase(8);
         ShowCards();
     });
     
-    jQuery('#map_btn_cancel').click(function(){
+    document.querySelector('#map_btn_cancel').addEventListener('click', function(){
         ShowCards();
     });
     

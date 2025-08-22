@@ -218,3 +218,19 @@ html, body{
 .map-selector.white{ background:#EEE; }
 .map-selector.green{ background:#3E3; }
 .map-selector.red{ background:#E33; }
+
+.log-messages {
+    height: 200px;
+    overflow-y: scroll;
+    border: 1px solid #555;
+    padding: 10px;
+    background: #111;
+    text-align: left;
+    font-size: 14px;
+}
+
+.log-message {
+    padding-bottom: 5px;
+    border-bottom: 1px dotted #444;
+    margin-bottom: 5px;
+}
